@@ -83,7 +83,7 @@ static RC write_zero_page_fd(int fd) {
 /* ---------------- API ---------------- */
 
 void initStorageManager(void) {
-    // Nothing global to initialize
+    printf("Storage Manager has been initialized.");
 }
 
 RC createPageFile(char *fileName) {
