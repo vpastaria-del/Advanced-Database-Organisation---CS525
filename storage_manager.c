@@ -1,8 +1,8 @@
-#include <fcntl.h>      // open, O_*
-#include <unistd.h>     // read, write, lseek, close
-#include <sys/stat.h>   // fstat, struct stat
-#include <stdlib.h>     // malloc, calloc, free
-#include <string.h>     // strcmp, strdup
+#include <fcntl.h>    
+#include <unistd.h>     
+#include <sys/stat.h>  
+#include <stdlib.h>    
+#include <string.h>     
 #include "storage_mgr.h"
 #include "dberror.h"
 
@@ -10,12 +10,11 @@
 #define PAGE_SIZE 4096
 #endif
 
-// Internal struct to hold file descriptor
+// // Struct used to store the fHandle->mgmtInfo; holds the OS file descriptor (int)
 typedef struct SM_InternalFD {
     int fd;
 } SM_InternalFD;
-
-/* -------- Simple registry of open files (helps Windows destroy) -------- */
+// Struct to get the Linked list for all the open files
 typedef struct OpenNode {
     char *name;
     int   fd;
@@ -24,7 +23,7 @@ typedef struct OpenNode {
 
 static OpenNode *g_open_files = NULL;
 
-static void reg_add(const char *name, int fd) {
+static void reg_add(const char *name, int fd) {//Function to append the Linked list for opened files
     OpenNode *n = (OpenNode*)malloc(sizeof(OpenNode));
     if (!n) return;
     n->name = strdup(name ? name : "");
@@ -33,7 +32,7 @@ static void reg_add(const char *name, int fd) {
     g_open_files = n;
 }
 
-static void reg_remove_fd(int fd) {
+static void reg_remove_fd(int fd) {//If any file is closed, remove it from the opened files linked list
     OpenNode **pp = &g_open_files;
     while (*pp) {
         if ((*pp)->fd == fd) {
@@ -47,7 +46,7 @@ static void reg_remove_fd(int fd) {
     }
 }
 
-static int reg_find_fd_by_name(const char *name) {
+static int reg_find_fd_by_name(const char *name) {//Function to find the file in the openNode Struct
     for (OpenNode *p = g_open_files; p; p = p->next) {
         if (strcmp(p->name, name) == 0) return p->fd;
     }
