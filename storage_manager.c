@@ -80,7 +80,7 @@ static RC write_zero_page_fd(int fd) {
     return (w == PAGE_SIZE) ? RC_OK : RC_WRITE_FAILED;
 }
 
-/* ---------------- API ---------------- */
+/* ---------------- Storage Manager API ---------------- */
 
 void initStorageManager(void) {
     printf("Storage Manager has been initialized.");
@@ -118,7 +118,7 @@ RC openPageFile(char *fileName, SM_FileHandle *fHandle) {
 
     RC rc = refresh_page_count(fd, fHandle);
     if (rc != RC_OK) { close(fd); free(box); fHandle->mgmtInfo = NULL; return rc; }
-    if (fHandle->totalNumPages == 0) fHandle->totalNumPages = 1; // belt & suspenders
+    if (fHandle->totalNumPages == 0) fHandle->totalNumPages = 1;
 
     reg_add(fileName, fd);
     return RC_OK;
@@ -138,8 +138,6 @@ RC closePageFile(SM_FileHandle *fHandle) {
 
 RC destroyPageFile(char *fileName) {
     if (!fileName) return RC_FILE_NOT_FOUND;
-
-    // If open (Windows), close our handle first
     int fd_open = reg_find_fd_by_name(fileName);
     if (fd_open >= 0) {
         close(fd_open);
@@ -148,7 +146,7 @@ RC destroyPageFile(char *fileName) {
     return (remove(fileName) == 0) ? RC_OK : RC_FILE_NOT_FOUND;
 }
 
-/* ---------------- Reading ---------------- */
+/* ---------------- Reading File Operations ---------------- */
 
 RC readBlock(int pageNum, SM_FileHandle *fHandle, SM_PageHandle memPage) {
     if (!fHandle || !fHandle->mgmtInfo || !memPage) return RC_FILE_HANDLE_NOT_INIT;
@@ -188,7 +186,7 @@ RC readLastBlock(SM_FileHandle *fHandle, SM_PageHandle memPage) {
     return readBlock(fHandle->totalNumPages - 1, fHandle, memPage);
 }
 
-/* ---------------- Writing ---------------- */
+/* ---------------- Writing page Operations ---------------- */
 
 RC writeBlock(int pageNum, SM_FileHandle *fHandle, SM_PageHandle memPage) {
     if (!fHandle || !fHandle->mgmtInfo || !memPage) return RC_FILE_HANDLE_NOT_INIT;
