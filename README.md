@@ -6,7 +6,38 @@
 The goal of this assignment is to implement a simple storage manager-a module that is capable of reading blocks from a file on disk into memory and writing blocks from memory to a file on disk. The storage manager deals with pages(blocks) of fixed size(PAGESIZE). In addition to reading and writing pages from a file, it provides methods for creating, opening, and closing files. The storage manager has to maintain several types of information for an open file: The number of total pages in the file, the current page position (for reading and writing), the file name, and a POSIX file descriptor or FILE pointer.
 
 -----------------------------------------------------------------------------------------------------------------
+### Static (Private) Helper Methods
 
+### reg_add:
+
+Appends a new node (fileName, fd) to the internal linked list of open files. Helps keep track of currently opened files.
+
+### reg_remove_fd: 
+
+Removes a node (by file descriptor) from the linked list of open files. Used when closing or destroying a file.
+
+### reg_find_fd_by_name:
+
+Searches the linked list of open files by file name and returns the file descriptor if found, else -1.
+
+### page_offset:
+
+Computes the byte offset of a given page index: pageIndex * PAGE_SIZE. Used to position the file pointer for reading/writing.
+
+### get_fd:
+
+Retrieves the underlying OS file descriptor from an SM_FileHandle. Returns -1 if invalid.
+
+### refresh_page_count:
+
+Uses fstat to get the file size and updates fHandle->totalNumPages to reflect the number of logical pages.
+
+### write_zero_page_fd:
+
+Writes a zero-filled page of size PAGE_SIZE to the file at the current position. Used in createPageFile, appendEmptyBlock, and ensureCapacity.
+
+-----------------------------------------------------------------------------------------------
+----------------
 ****Page Related Methods****
 
 # **initStorageManager:**
