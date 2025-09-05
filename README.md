@@ -128,13 +128,14 @@ This method increases the number of pages in the file by adding one page at the 
 
 -------------------------------------------------------------------------------------------
 
-### How to Run :
+### How to Run (FOR WINDOWS) :
+-  Pre-requsisite : MinGW should be installed in the system.
 
-Step 1 : Open the Command Prompt/Terminal
+Step 1 : Open the Command Prompt/Terminal.
 
 Step 2 : Navigate to the assign1_storage_manager directory.
 
-Step 3 : Type command 'make' and enter.(Files are compiled and ready to be executed)
+Step 3 : Type command 'mingw32-make' and enter(Files are compiled and ready to be executed).
 
-Step 4 : Type command './test_assign1.exe' if using a Windows operating system
+Step 4 : Type command 'test_assign1.exe'.
 
