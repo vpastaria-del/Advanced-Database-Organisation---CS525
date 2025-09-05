@@ -194,7 +194,7 @@ RC writeBlock(int pageNum, SM_FileHandle *fHandle, SM_PageHandle memPage) {
 
     int fd = get_fd(fHandle);
 
-    // If writing beyond current capacity, grow first
+    // If we writing beyond current capacity, grow first
     if (fHandle->totalNumPages <= pageNum) {
         RC rc = ensureCapacity(pageNum + 1, fHandle);
         if (rc != RC_OK) return rc;
