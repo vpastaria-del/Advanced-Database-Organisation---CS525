@@ -1,29 +1,28 @@
-# Detect OS
 ifeq ($(OS),Windows_NT)
-    RM = del /Q
-    EXE = .exe
+    DELETE = del /Q
+    EXT    = .exe
 else
-    RM = rm -f
-    EXE =
+    DELETE = rm -f
+    EXT    =
 endif
 
-CC = gcc
-CFLAGS = -Wall -Wextra -std=c11 -g
+CC       = gcc
+CFLAGS   = -Wall -Wextra -std=c11 -g
 
-SRCS = storage_manager.c dberror.c test_assign1_1.c
-OBJS = $(SRCS:.c=.o)
-TARGET = test_assign1$(EXE)
+SOURCES  = storage_manager.c dberror.c test_assign1_1.c
+OBJECTS  = $(SOURCES:.c=.o)
+PROGRAM  = test_assign1$(EXT)
 
-all: $(TARGET)
+all: $(PROGRAM)
 
-$(TARGET): $(OBJS)
-	$(CC) $(OBJS) -o $(TARGET)
+$(PROGRAM): $(OBJECTS)
+	$(CC) $(OBJECTS) -o $(PROGRAM)
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
-run: $(TARGET)
-	./$(TARGET)
+run: $(PROGRAM)
+	./$(PROGRAM)
 
 clean:
-	-$(RM) $(OBJS) $(TARGET) test_pagefile.bin
+	-$(DELETE) $(OBJECTS) $(PROGRAM) test_pagefile.bin

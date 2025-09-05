@@ -11,9 +11,9 @@
 #endif
 
 // // Struct used to store the fHandle->mgmtInfo; holds the OS file descriptor (int)
-typedef struct SM_InternalFD {
+typedef struct InternalFileHandle {
     int fd;
-} SM_InternalFD;
+} InternalFileHandle;
 // Struct to get the Linked list for all the open files
 typedef struct OpenNode {
     char *name;
@@ -23,7 +23,7 @@ typedef struct OpenNode {
 
 static OpenNode *g_open_files = NULL;
 
-static void reg_add(const char *name, int fd) {//Function to append the Linked list for opened files
+static void addOpenFile(const char *name, int fd) {//Function to append the Linked list for opened files
     OpenNode *n = (OpenNode*)malloc(sizeof(OpenNode));
     if (!n) return;
     n->name = strdup(name ? name : "");
@@ -32,7 +32,7 @@ static void reg_add(const char *name, int fd) {//Function to append the Linked l
     g_open_files = n;
 }
 
-static void reg_remove_fd(int fd) {//If any file is closed, remove it from the opened files linked list
+static void removeOpenFile(int fd) {//If any file is closed, remove it from the opened files linked list
     OpenNode **pp = &g_open_files;
     while (*pp) {
         if ((*pp)->fd == fd) {
@@ -46,24 +46,24 @@ static void reg_remove_fd(int fd) {//If any file is closed, remove it from the o
     }
 }
 
-static int reg_find_fd_by_name(const char *name) {//Function to find the file in the openNode Struct
+static int getFdByName(const char *name) {//Function to find the file in the openNode Struct
     for (OpenNode *p = g_open_files; p; p = p->next) {
         if (strcmp(p->name, name) == 0) return p->fd;
     }
     return -1;
 }
 
-/* ---------------- Helpers ---------------- */
+// Helper Functions 
 
 static inline off_t page_offset(int pageIndex) {
     return (off_t)pageIndex * (off_t)PAGE_SIZE;
 }
 
 static inline int get_fd(const SM_FileHandle *fh) {
-    return (fh && fh->mgmtInfo) ? ((const SM_InternalFD*)fh->mgmtInfo)->fd : -1;
+    return (fh && fh->mgmtInfo) ? ((const InternalFileHandle*)fh->mgmtInfo)->fd : -1;
 }
 
-static RC refresh_page_count(int fd, SM_FileHandle *fh) {
+static RC updatePageCount(int fd, SM_FileHandle *fh) {
     struct stat st;
     if (fstat(fd, &st) != 0) return RC_FILE_NOT_FOUND;
     // Round up to full pages (robust to odd file sizes)
@@ -80,7 +80,7 @@ static RC write_zero_page_fd(int fd) {
     return (w == PAGE_SIZE) ? RC_OK : RC_WRITE_FAILED;
 }
 
-/* ---------------- Storage Manager API ---------------- */
+// Storage Manager API 
 
 void initStorageManager(void) {
     printf("Storage Manager has been initialized.");
@@ -108,7 +108,7 @@ RC openPageFile(char *fileName, SM_FileHandle *fHandle) {
     );
     if (fd < 0) return RC_FILE_NOT_FOUND;
 
-    SM_InternalFD *box = (SM_InternalFD*)malloc(sizeof(SM_InternalFD));
+    InternalFileHandle *box = (InternalFileHandle*)malloc(sizeof(InternalFileHandle));
     if (!box) { close(fd); return RC_FILE_HANDLE_NOT_INIT; }
     box->fd = fd;
 
@@ -116,11 +116,11 @@ RC openPageFile(char *fileName, SM_FileHandle *fHandle) {
     fHandle->mgmtInfo   = box;
     fHandle->curPagePos = 0;
 
-    RC rc = refresh_page_count(fd, fHandle);
+    RC rc = updatePageCount(fd, fHandle);
     if (rc != RC_OK) { close(fd); free(box); fHandle->mgmtInfo = NULL; return rc; }
     if (fHandle->totalNumPages == 0) fHandle->totalNumPages = 1;
 
-    reg_add(fileName, fd);
+    addOpenFile(fileName, fd);
     return RC_OK;
 }
 
@@ -129,7 +129,7 @@ RC closePageFile(SM_FileHandle *fHandle) {
     int fd = get_fd(fHandle);
     if (fd >= 0) {
         close(fd);
-        reg_remove_fd(fd);
+        removeOpenFile(fd);
     }
     free(fHandle->mgmtInfo);
     fHandle->mgmtInfo = NULL;
@@ -138,15 +138,15 @@ RC closePageFile(SM_FileHandle *fHandle) {
 
 RC destroyPageFile(char *fileName) {
     if (!fileName) return RC_FILE_NOT_FOUND;
-    int fd_open = reg_find_fd_by_name(fileName);
+    int fd_open = getFdByName(fileName);
     if (fd_open >= 0) {
         close(fd_open);
-        reg_remove_fd(fd_open);
+        removeOpenFile(fd_open);
     }
     return (remove(fileName) == 0) ? RC_OK : RC_FILE_NOT_FOUND;
 }
 
-/* ---------------- Reading File Operations ---------------- */
+// Reading File Operations 
 
 RC readBlock(int pageNum, SM_FileHandle *fHandle, SM_PageHandle memPage) {
     if (!fHandle || !fHandle->mgmtInfo || !memPage) return RC_FILE_HANDLE_NOT_INIT;
@@ -186,7 +186,7 @@ RC readLastBlock(SM_FileHandle *fHandle, SM_PageHandle memPage) {
     return readBlock(fHandle->totalNumPages - 1, fHandle, memPage);
 }
 
-/* ---------------- Writing page Operations ---------------- */
+// Writing page Operations 
 
 RC writeBlock(int pageNum, SM_FileHandle *fHandle, SM_PageHandle memPage) {
     if (!fHandle || !fHandle->mgmtInfo || !memPage) return RC_FILE_HANDLE_NOT_INIT;
@@ -206,7 +206,7 @@ RC writeBlock(int pageNum, SM_FileHandle *fHandle, SM_PageHandle memPage) {
     if (w != PAGE_SIZE) return RC_WRITE_FAILED;
 
     fHandle->curPagePos = pageNum;
-    (void)refresh_page_count(fd, fHandle);
+    (void)updatePageCount(fd, fHandle);
     if (fHandle->totalNumPages <= pageNum)
         fHandle->totalNumPages = pageNum + 1;
 
@@ -223,13 +223,13 @@ RC appendEmptyBlock(SM_FileHandle *fHandle) {
     if (lseek(fd, 0, SEEK_END) == (off_t)-1) return RC_WRITE_FAILED;
     RC rc = write_zero_page_fd(fd);
     if (rc != RC_OK) return rc;
-    return refresh_page_count(fd, fHandle);
+    return updatePageCount(fd, fHandle);
 }
 
 RC ensureCapacity(int numberOfPages, SM_FileHandle *fHandle) {
     if (!fHandle || !fHandle->mgmtInfo) return RC_FILE_HANDLE_NOT_INIT;
     int fd = get_fd(fHandle);
-    RC rc = refresh_page_count(fd, fHandle);
+    RC rc = updatePageCount(fd, fHandle);
     if (rc != RC_OK) return rc;
 
     while (fHandle->totalNumPages < numberOfPages) {
