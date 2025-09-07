@@ -142,7 +142,6 @@ Step 4 : Type command 'test_assign1.exe'.
 
 ---------------------------------------------------------------------------------------------
 ### How to Run (FOR macOS) :
--  Pre-requsisite : MinGW should be installed in the system.
 
 Step 1 : Open the Command Prompt/Terminal.
 
